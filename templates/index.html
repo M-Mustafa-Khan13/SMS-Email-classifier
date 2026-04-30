@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpamLens</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header class="site-logo" aria-label="SpamLens">
+        <span class="logo-mark" aria-hidden="true">S</span>
+        <span>SpamLens</span>
+    </header>
+
+    <main class="page-shell">
+        <section class="hero" aria-labelledby="page-title">
+            <h1 id="page-title">
+                {% if mode == "phishing" %}
+                    Phishing Detection System
+                {% else %}
+                    Spam Detection System
+                {% endif %}
+            </h1>
+            <p id="page-subtitle">
+                {% if mode == "phishing" %}
+                    Analyze emails and suspicious text for phishing risk with an instant confidence score.
+                {% else %}
+                    Instantly check whether a message is spam or safe before you trust it.
+                {% endif %}
+            </p>
+        </section>
+
+        <section class="checker-panel" aria-label="Message checker">
+            <form class="message-form" method="POST" action="/">
+                <div class="mode-toggle" role="group" aria-label="Detection mode">
+                    <button
+                        type="button"
+                        class="mode-option {% if mode != 'phishing' %}active{% endif %}"
+                        data-mode="spam"
+                        aria-pressed="{% if mode != 'phishing' %}true{% else %}false{% endif %}"
+                    >
+                        Spam Detection
+                    </button>
+                    <button
+                        type="button"
+                        class="mode-option {% if mode == 'phishing' %}active{% endif %}"
+                        data-mode="phishing"
+                        aria-pressed="{% if mode == 'phishing' %}true{% else %}false{% endif %}"
+                    >
+                        Phishing Detection
+                    </button>
+                </div>
+
+                <input type="hidden" id="mode" name="mode" value="{{ mode or 'spam' }}">
+
+                <div class="field-group">
+                    <label for="message">Message Content</label>
+                    <textarea
+                        id="message"
+                        name="message"
+                        placeholder="{% if mode == 'phishing' %}Paste a suspicious email, link, or message to analyze...{% else %}Paste your SMS message here to analyze...{% endif %}"
+                        required
+                    ></textarea>
+                </div>
+
+                <button class="submit-button" type="submit">Check Message</button>
+            </form>
+
+            <div class="result {{ css_class }}">
+                <div class="result-icon" aria-hidden="true"></div>
+                <div class="result-content">
+                    {% if prediction %}
+                        <p class="result-title">
+                            {% if prediction == "SPAM" %}
+                                Spam Detected
+                            {% elif prediction == "Phishing" %}
+                                Phishing Risk Detected
+                            {% else %}
+                                Message Looks Safe
+                            {% endif %}
+                        </p>
+                        <p class="result-copy">
+                            Prediction: <strong>{{ prediction }}</strong>
+                        </p>
+
+                        {% if mode == "phishing" and percent is not none %}
+                            <div class="score-row">
+                                <span>Phishing confidence</span>
+                                <strong>{{ percent }}%</strong>
+                            </div>
+                            <div class="progress-track" aria-label="Phishing confidence">
+                                <div class="progress-bar" data-percent="{{ percent }}"></div>
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <p class="result-title">Analysis Pending</p>
+                        <p class="result-copy">Enter a message above to see results.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+
+        <section class="features" aria-label="How SpamLens works">
+            <article class="feature-card">
+                <span class="feature-step">1</span>
+                <h2>Paste</h2>
+                <p>Copy any suspicious text, SMS, or email.</p>
+            </article>
+
+            <article class="feature-card">
+                <span class="feature-step">2</span>
+                <h2>Analyze</h2>
+                <p>Choose the model and let SpamLens evaluate it.</p>
+            </article>
+
+            <article class="feature-card">
+                <span class="feature-step">3</span>
+                <h2>Verify</h2>
+                <p>Review the prediction before you respond.</p>
+            </article>
+        </section>
+    </main>
+
+    <script>
+        const modeInput = document.getElementById("mode");
+        const modeButtons = document.querySelectorAll("[data-mode]");
+        const pageTitle = document.getElementById("page-title");
+        const pageSubtitle = document.getElementById("page-subtitle");
+        const messageField = document.getElementById("message");
+
+        const modeCopy = {
+            spam: {
+                title: "Spam Detection System",
+                subtitle: "Instantly check whether a message is spam or safe before you trust it.",
+                placeholder: "Paste your SMS message here to analyze..."
+            },
+            phishing: {
+                title: "Phishing Detection System",
+                subtitle: "Analyze emails and suspicious text for phishing risk with an instant confidence score.",
+                placeholder: "Paste a suspicious email, link, or message to analyze..."
+            }
+        };
+
+        function setMode(mode) {
+            const copy = modeCopy[mode] || modeCopy.spam;
+
+            modeInput.value = mode;
+            pageTitle.textContent = copy.title;
+            pageSubtitle.textContent = copy.subtitle;
+            messageField.placeholder = copy.placeholder;
+
+            modeButtons.forEach((button) => {
+                const isActive = button.dataset.mode === mode;
+                button.classList.toggle("active", isActive);
+                button.setAttribute("aria-pressed", String(isActive));
+            });
+        }
+
+        modeButtons.forEach((button) => {
+            button.addEventListener("click", () => setMode(button.dataset.mode));
+        });
+
+        document.querySelectorAll(".progress-bar[data-percent]").forEach((bar) => {
+            const percent = Number.parseFloat(bar.dataset.percent);
+
+            if (!Number.isNaN(percent)) {
+                const clampedPercent = Math.max(0, Math.min(100, percent));
+                bar.style.width = `${clampedPercent}%`;
+            }
+        });
+    </script>
+</body>
+</html>
